@@ -2,12 +2,12 @@ let highestZ = 1;
 
 class Paper {
   holdingPaper = false;
-  mouseTouchX = 0;
-  mouseTouchY = 0;
-  mouseX = 0;
-  mouseY = 0;
-  prevMouseX = 0;
-  prevMouseY = 0;
+  touchActive = false;
+  touchIdentifier = null;
+  touchStartX = 0;
+  touchStartY = 0;
+  touchMoveX = 0;
+  touchMoveY = 0;
   velX = 0;
   velY = 0;
   rotation = Math.random() * 30 - 15;
@@ -16,61 +16,79 @@ class Paper {
   rotating = false;
 
   init(paper) {
+    // Mouse event listeners
     document.addEventListener('mousemove', (e) => {
-      if(!this.rotating) {
-        this.mouseX = e.clientX;
-        this.mouseY = e.clientY;
-        
-        this.velX = this.mouseX - this.prevMouseX;
-        this.velY = this.mouseY - this.prevMouseY;
+      if (!this.rotating && this.holdingPaper) {
+        this.velX = e.clientX - this.touchStartX;
+        this.velY = e.clientY - this.touchStartY;
       }
-        
-      const dirX = e.clientX - this.mouseTouchX;
-      const dirY = e.clientY - this.mouseTouchY;
-      const dirLength = Math.sqrt(dirX*dirX+dirY*dirY);
-      const dirNormalizedX = dirX / dirLength;
-      const dirNormalizedY = dirY / dirLength;
-
-      const angle = Math.atan2(dirNormalizedY, dirNormalizedX);
-      let degrees = 180 * angle / Math.PI;
-      degrees = (360 + Math.round(degrees)) % 360;
-      if(this.rotating) {
-        this.rotation = degrees;
+      if (this.holdingPaper) {
+        this.touchStartX = e.clientX;
+        this.touchStartY = e.clientY;
       }
-
-      if(this.holdingPaper) {
-        if(!this.rotating) {
-          this.currentPaperX += this.velX;
-          this.currentPaperY += this.velY;
-        }
-        this.prevMouseX = this.mouseX;
-        this.prevMouseY = this.mouseY;
-
-        paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
-      }
-    })
+    });
 
     paper.addEventListener('mousedown', (e) => {
-      if(this.holdingPaper) return; 
+      e.preventDefault(); // Prevent default behavior to avoid text selection
+      if (this.holdingPaper) return;
       this.holdingPaper = true;
-      
+      this.touchIdentifier = e.button; // Use button 0 for dragging and button 2 for rotation
+
       paper.style.zIndex = highestZ;
       highestZ += 1;
-      
-      if(e.button === 0) {
-        this.mouseTouchX = this.mouseX;
-        this.mouseTouchY = this.mouseY;
-        this.prevMouseX = this.mouseX;
-        this.prevMouseY = this.mouseY;
-      }
-      if(e.button === 2) {
-        this.rotating = true;
-      }
+
+      this.touchStartX = e.clientX;
+      this.touchStartY = e.clientY;
     });
+
     window.addEventListener('mouseup', () => {
       this.holdingPaper = false;
+      this.touchIdentifier = null;
       this.rotating = false;
     });
+
+    // Touch event listeners
+    paper.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (this.holdingPaper) return;
+      this.holdingPaper = true;
+      this.touchActive = true;
+      this.touchIdentifier = e.changedTouches[0].identifier;
+
+      paper.style.zIndex = highestZ;
+      highestZ += 1;
+
+      this.touchStartX = e.changedTouches[0].clientX;
+      this.touchStartY = e.changedTouches[0].clientY;
+    });
+
+    paper.addEventListener('touchend', () => {
+      this.holdingPaper = false;
+      this.touchActive = false;
+      this.touchIdentifier = null;
+      this.rotating = false;
+    });
+
+    paper.addEventListener('touchmove', (e) => {
+      if (!this.touchActive) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === this.touchIdentifier) {
+          this.touchMoveX = e.changedTouches[i].clientX;
+          this.touchMoveY = e.changedTouches[i].clientY;
+          break;
+        }
+      }
+      this.velX = this.touchMoveX - this.touchStartX;
+      this.velY = this.touchMoveY - this.touchStartY;
+      this.touchStartX = this.touchMoveX;
+      this.touchStartY = this.touchMoveY;
+    });
+
+    paper.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    paper.style.touchAction = 'none';
   }
 }
 
@@ -86,9 +104,8 @@ const audioPlayer = document.getElementById('audioPlayer');
 audioPlayer.addEventListener('timeupdate', () => {
   const targetTime = 62; // 1 minute and 2 seconds
   if (audioPlayer.currentTime >= targetTime) {
-    // Delay the redirection to the next href in 5 seconds
     setTimeout(() => {
       window.location.href = 'flowers.html';
-    }, 5000);
+    }, 4000);
   }
 });
