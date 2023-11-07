@@ -84,23 +84,11 @@ class Paper {
         this.velY = this.mouseY - this.prevMouseY;
       }
 
-      const dirX = this.mouseX - this.mouseTouchX;
-      const dirY = this.mouseY - this.mouseTouchY;
-      const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
-      const dirNormalizedX = dirX / dirLength;
-      const dirNormalizedY = dirY / dirLength;
-
-      const angle = Math.atan2(dirNormalizedY, dirNormalizedX);
-      let degrees = 180 * angle / Math.PI;
-      degrees = (360 + Math.round(degrees)) % 360;
-      if (this.rotating) {
-        this.rotation = degrees;
-      }
-
       if (this.holdingPaper) {
         if (!this.rotating) {
-          this.currentPaperX += this.velX;
-          this.currentPaperY += this.velY;
+          // Update the position of the paper based on touch coordinates
+          this.currentPaperX = this.mouseX - this.mouseTouchX;
+          this.currentPaperY = this.mouseY - this.mouseTouchY;
         }
         this.prevMouseX = this.mouseX;
         this.prevMouseY = this.mouseY;
