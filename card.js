@@ -2,84 +2,135 @@ let highestZ = 1;
 
 class Paper {
   holdingPaper = false;
-  touchActive = false;
-  touchIdentifier = null;
-  touchStartX = 0;
-  touchStartY = 0;
-  touchMoveX = 0;
-  touchMoveY = 0;
-  longTapThreshold = 500; // Define a long tap threshold in milliseconds
-  longTapTimer = null;
+  mouseTouchX = 0;
+  mouseTouchY = 0;
+  mouseX = 0;
+  mouseY = 0;
+  prevMouseX = 0;
+  prevMouseY = 0;
+  velX = 0;
+  velY = 0;
   rotation = Math.random() * 30 - 15;
   currentPaperX = 0;
   currentPaperY = 0;
   rotating = false;
 
   init(paper) {
-    // Mouse event listeners (unchanged)
-    
+    document.addEventListener('mousemove', (e) => {
+      if (!this.rotating) {
+        this.mouseX = e.clientX;
+        this.mouseY = e.clientY;
+        this.velX = this.mouseX - this.prevMouseX;
+        this.velY = this.mouseY - this.prevMouseY;
+      }
+
+      const dirX = e.clientX - this.mouseTouchX;
+      const dirY = e.clientY - this.mouseTouchY;
+      const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+      const dirNormalizedX = dirX / dirLength;
+      const dirNormalizedY = dirY / dirLength;
+
+      const angle = Math.atan2(dirNormalizedY, dirNormalizedX);
+      let degrees = 180 * angle / Math.PI;
+      degrees = (360 + Math.round(degrees)) % 360;
+      if (this.rotating) {
+        this.rotation = degrees;
+      }
+
+      if (this.holdingPaper) {
+        if (!this.rotating) {
+          this.currentPaperX += this.velX;
+          this.currentPaperY += this.velY;
+        }
+        this.prevMouseX = this.mouseX;
+        this.prevMouseY = this.mouseY;
+
+        paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
+      }
+    });
+
     paper.addEventListener('mousedown', (e) => {
-      // (unchanged)
+      if (this.holdingPaper) return;
+      this.holdingPaper = true;
+
+      paper.style.zIndex = highestZ;
+      highestZ += 1;
+
+      if (e.button === 0) {
+        this.mouseTouchX = this.mouseX;
+        this.mouseTouchY = this.mouseY;
+        this.prevMouseX = this.mouseX;
+        this.prevMouseY = this.mouseY;
+      }
+      if (e.button === 2) {
+        this.rotating = true;
+      }
     });
 
     window.addEventListener('mouseup', () => {
       this.holdingPaper = false;
-      this.touchActive = false;
-      this.touchIdentifier = null;
       this.rotating = false;
-      if (this.longTapTimer) {
-        clearTimeout(this.longTapTimer);
+    });
+
+    // Touchmove Event Listener
+    paper.addEventListener('touchmove', (e) => {
+      e.preventDefault(); // Prevent scrolling on touch devices
+
+      if (!this.rotating) {
+        const touch = e.touches[0];
+        this.mouseX = touch.clientX;
+        this.mouseY = touch.clientY;
+        this.velX = this.mouseX - this.prevMouseX;
+        this.velY = this.mouseY - this.prevMouseY;
+      }
+
+      const dirX = this.mouseX - this.mouseTouchX;
+      const dirY = this.mouseY - this.mouseTouchY;
+      const dirLength = Math.sqrt(dirX * dirX + dirY * dirY);
+      const dirNormalizedX = dirX / dirLength;
+      const dirNormalizedY = dirY / dirLength;
+
+      const angle = Math.atan2(dirNormalizedY, dirNormalizedX);
+      let degrees = 180 * angle / Math.PI;
+      degrees = (360 + Math.round(degrees)) % 360;
+      if (this.rotating) {
+        this.rotation = degrees;
+      }
+
+      if (this.holdingPaper) {
+        if (!this.rotating) {
+          this.currentPaperX += this.velX;
+          this.currentPaperY += this.velY;
+        }
+        this.prevMouseX = this.mouseX;
+        this.prevMouseY = this.mouseY;
+
+        paper.style.transform = `translateX(${this.currentPaperX}px) translateY(${this.currentPaperY}px) rotateZ(${this.rotation}deg)`;
       }
     });
 
-    // Touch event listeners
+    // Touchstart Event Listener
     paper.addEventListener('touchstart', (e) => {
-      e.preventDefault();
+      e.preventDefault(); // Prevent any default touch actions
+
       if (this.holdingPaper) return;
       this.holdingPaper = true;
-      this.touchActive = true;
-      this.touchIdentifier = e.changedTouches[0].identifier;
-      this.touchStartX = e.changedTouches[0].clientX;
-      this.touchStartY = e.changedTouches[0].clientY;
 
-      // Start a timer to detect long tap
-      this.longTapTimer = setTimeout(() => {
-        this.rotating = true;
-      }, this.longTapThreshold);
+      paper.style.zIndex = highestZ;
+      highestZ += 1;
+
+      const touch = e.touches[0];
+      this.mouseTouchX = touch.clientX;
+      this.mouseTouchY = touch.clientY;
+      this.prevMouseX = this.mouseX;
+      this.prevMouseY = this.mouseY;
     });
 
+    // Touchend Event Listener
     paper.addEventListener('touchend', () => {
       this.holdingPaper = false;
-      this.touchActive = false;
-      this.touchIdentifier = null;
       this.rotating = false;
-      if (this.longTapTimer) {
-        clearTimeout(this.longTapTimer);
-      }
     });
-
-    paper.addEventListener('touchmove', (e) => {
-      if (!this.touchActive) return;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === this.touchIdentifier) {
-          this.touchMoveX = e.changedTouches[i].clientX;
-          this.touchMoveY = e.changedTouches[i].clientY;
-          break;
-        }
-      }
-      if (!this.rotating) {
-        this.velX = this.touchMoveX - this.touchStartX;
-        this.velY = this.touchMoveY - this.touchStartY;
-        this.touchStartX = this.touchMoveX;
-        this.touchStartY = this.touchMoveY;
-      }
-    });
-
-    paper.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
-
-    paper.style.touchAction = 'none';
   }
 }
 
@@ -93,7 +144,7 @@ papers.forEach(paper => {
 const audioPlayer = document.getElementById('audioPlayer');
 
 audioPlayer.addEventListener('timeupdate', () => {
-  const targetTime = 62;
+  const targetTime = 62; // 1 minute and 2 seconds
   if (audioPlayer.currentTime >= targetTime) {
     setTimeout(() => {
       window.location.href = 'flowers.html';
