@@ -89,6 +89,6 @@ audioPlayer.addEventListener('timeupdate', () => {
     // Delay the redirection to the next href in 5 seconds
     setTimeout(() => {
       window.location.href = 'flowers.html';
-    }, 8500);
+    }, 5000);
   }
 });
